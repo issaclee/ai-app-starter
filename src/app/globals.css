@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+:root { --background: #ffffff; --foreground: #0d0d0d; --panel: #ffffff; --sidebar: #f9f9f9; --composer: #f4f4f4; --muted: #ececec; --muted-foreground: #5d5d5d; --border: #e5e5e5; --brand: #4b49ac; --brand-secondary: #98bdff; --brand-support: #7da0fa; --brand-emphasis: #7879e9; --brand-danger: #f3797e; --brand-soft: #eef3ff; }
+.dark { --background: #212121; --foreground: #ececec; --panel: #2f2f2f; --sidebar: #171717; --composer: #2f2f2f; --muted: #2f2f2f; --muted-foreground: #b4b4b4; --border: #424242; --brand: #7879e9; --brand-secondary: #98bdff; --brand-support: #7da0fa; --brand-emphasis: #7879e9; --brand-danger: #f3797e; --brand-soft: #302f5f; }
+@theme inline { --color-background: var(--background); --color-foreground: var(--foreground); --color-panel: var(--panel); --color-sidebar: var(--sidebar); --color-composer: var(--composer); --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground); --color-border: var(--border); --color-brand: var(--brand); --color-brand-secondary: var(--brand-secondary); --color-brand-support: var(--brand-support); --color-brand-emphasis: var(--brand-emphasis); --color-brand-danger: var(--brand-danger); --color-brand-soft: var(--brand-soft); --font-sans: var(--font-geist-sans); --font-mono: var(--font-geist-mono); }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-height: 100vh; background: var(--background); color: var(--foreground); }
+button, a, input, textarea { outline-offset: 3px; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--brand-support); }
+.chat-composer textarea:focus-visible { outline: none; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+@layer components {
+  .button-primary { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:brightness-110; }
+  .button-secondary { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-border bg-panel px-4 py-2 text-sm font-medium transition hover:bg-muted; }
+  .field { @apply h-11 w-full rounded-xl border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:border-brand; }
+}

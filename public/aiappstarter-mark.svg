@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">AIAppStarter</title>
+  <desc id="desc">AI spark connected to two accent nodes</desc>
+  <rect width="512" height="512" rx="132" fill="#4B49AC"/>
+  <circle cx="143" cy="169" r="29" fill="#98BDFF"/>
+  <circle cx="375" cy="369" r="25" fill="#F3797E"/>
+  <path d="M165 190L218 230M351 347L298 299" stroke="#98BDFF" stroke-width="22" stroke-linecap="round"/>
+  <path d="M256 110C269 196 316 243 402 256C316 269 269 316 256 402C243 316 196 269 110 256C196 243 243 196 256 110Z" fill="#FFF"/>
+  <circle cx="256" cy="256" r="33" fill="#7879E9"/>
+</svg>
