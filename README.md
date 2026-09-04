@@ -77,17 +77,12 @@ OLLAMA_MODEL=llama3.2
 
 Restart the development server after changing environment variables.
 
-## OAuth status
+## OAuth configuration
 
-Google and Microsoft buttons are deliberately visible but disabled. To enable them later:
+Google and Microsoft Entra ID sign-in use the server environment variables shown in `.env.example`. Configure these callback URLs in the provider consoles:
 
-1. Register OAuth applications with Google and Microsoft Entra ID.
-2. Add their callback URLs for the deployed application.
-3. Store client IDs and secrets in server environment variables.
-4. Add the corresponding Auth.js providers in `src/auth.ts`.
-5. Remove the disabled state only after validating account linking and redirects.
-
-The placeholders in `.env.example` are not active configuration.
+- Google: `/api/auth/callback/google`
+- Microsoft: `/api/auth/callback/microsoft`
 
 ## Commands
 

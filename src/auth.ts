@@ -1,9 +1,13 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
+import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import { checkRateLimit } from "@/lib/rate-limit";
+
+const microsoftTenantId = process.env.MICROSOFT_ENTRA_ID_TENANT_ID;
 
 const credentialsSchema = z.object({
   email: z.string().email().max(254).transform((value) => value.toLowerCase()),
@@ -13,8 +17,20 @@ const credentialsSchema = z.object({
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+  pages: { signIn: "/login", error: "/login" },
   providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
+    MicrosoftEntraID({
+      id: "microsoft",
+      clientId: process.env.MICROSOFT_ENTRA_ID_CLIENT_ID,
+      clientSecret: process.env.MICROSOFT_ENTRA_ID_CLIENT_SECRET,
+      issuer: microsoftTenantId
+        ? `https://login.microsoftonline.com/${microsoftTenantId}/v2.0`
+        : undefined,
+    }),
     Credentials({
       name: "Username and password",
       credentials: {
