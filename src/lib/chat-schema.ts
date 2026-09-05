@@ -11,6 +11,7 @@ export const chatMessageSchema = z.object({
 export const chatRequestSchema = z
   .object({
     messages: z.array(chatMessageSchema).min(1).max(MAX_MESSAGES),
+    provider: z.enum(["openai", "ollama"]).optional(),
   })
   .superRefine(({ messages }, context) => {
     const last = messages.at(-1);

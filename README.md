@@ -1,6 +1,6 @@
 # AIAppStarter
 
-AIAppStarter is a small, secure AI chat starter built with Next.js, React, Auth.js, Prisma, and Tailwind CSS. It supports OpenAI, a local Ollama server, or a zero-configuration echo mode.
+AIAppStarter is a small, secure AI chat starter built with Next.js, React, Auth.js, Prisma, and Tailwind CSS. It supports OpenAI-compatible providers and local Ollama servers.
 
 ## Prerequisites
 
@@ -42,21 +42,18 @@ This account and password are **development-only**. Change the password before s
 
 ## Model providers
 
-Provider selection happens only on the server. If the selected provider is unknown or incompletely configured, AIAppStarter uses echo mode. A failure from a fully configured provider produces a safe error rather than switching to a different real provider.
+Provider selection, model discovery, API keys, and upstream requests stay on the server. Missing or invalid configuration produces a safe, user-facing error in the chat interface.
 
-### Echo mode
-
-Leave `LLM_PROVIDER` blank. The assistant returns `Echo: <latest user message>`, which makes the full UI usable without external services.
-
-### OpenAI
+### OpenAI-compatible providers
 
 ```dotenv
 LLM_PROVIDER=openai
+OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_API_KEY=your_server_side_key
 OPENAI_MODEL=your_model_name
 ```
 
-AIAppStarter uses the official OpenAI Node SDK and Responses API. Never prefix the key variable with `NEXT_PUBLIC_`.
+The endpoint must implement the OpenAI-compatible `/chat/completions` and `/models` APIs. `OPENAI_API_KEY` is optional for providers that do not require authentication. When `OPENAI_MODEL` is blank, the server selects the first model returned by `/models`. Never prefix server configuration with `NEXT_PUBLIC_`.
 
 ### Ollama
 
@@ -74,6 +71,8 @@ LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 OLLAMA_MODEL=llama3.2
 ```
+
+When `OLLAMA_MODEL` is blank, the server selects the first locally available model returned by Ollama's `/api/tags` endpoint.
 
 Restart the development server after changing environment variables.
 
@@ -102,7 +101,7 @@ npm run db:seed      # create the bootstrap user if absent
 
 - `src/auth.ts` — credential authentication, safe redirects, and login throttling
 - `src/app/api/chat/route.ts` — authenticated and validated chat boundary
-- `src/lib/llm.ts` — OpenAI, Ollama, and echo implementations
+- `src/lib/llm.ts` — streaming OpenAI-compatible and Ollama provider adapters
 - `src/lib/chat-schema.ts` — input limits and Zod validation
 - `src/app/(workspace)` — authenticated chat and settings pages
 - `src/components` — chat, navigation, login, and theme UI

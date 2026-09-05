@@ -1,10 +1,11 @@
 import { chatRequestSchema, type ChatMessage } from "@/lib/chat-schema";
+import { ProviderError, type ProviderOption } from "@/lib/llm";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export type ChatSession = { user?: { email?: string | null } } | null;
 export type ChatDependencies = {
   getSession: () => Promise<ChatSession>;
-  reply: (messages: ChatMessage[]) => Promise<string>;
+  reply: (messages: ChatMessage[], provider?: ProviderOption["id"]) => Promise<ReadableStream<Uint8Array>>;
 };
 
 export async function handleChatRequest(request: Request, dependencies: ChatDependencies) {
@@ -27,10 +28,19 @@ export async function handleChatRequest(request: Request, dependencies: ChatDepe
   if (!parsed.success) return Response.json({ error: "Invalid chat request." }, { status: 400 });
 
   try {
-    const message = await dependencies.reply(parsed.data.messages);
-    return Response.json({ message });
+    const stream = await dependencies.reply(parsed.data.messages, parsed.data.provider);
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store, no-transform",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
   } catch (error) {
     console.error("Chat provider request failed", error instanceof Error ? error.message : "Unknown error");
-    return Response.json({ error: "The assistant is temporarily unavailable. Please try again." }, { status: 502 });
+    const message = error instanceof ProviderError
+      ? error.publicMessage
+      : "The assistant is temporarily unavailable. Please try again.";
+    return Response.json({ error: message }, { status: 502 });
   }
 }

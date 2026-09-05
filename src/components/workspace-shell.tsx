@@ -5,18 +5,22 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   ChevronDown,
+  Ellipsis,
   LogOut,
   Menu,
   MessageSquarePlus,
   MessageSquareText,
   PanelLeftClose,
   PanelLeftOpen,
+  Pencil,
   Settings,
+  Trash2,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { groupChatHistory, type ChatSummary, type HistoryGroup } from "@/lib/chat-history";
 
 type Props = {
   user: { name: string; email: string };
@@ -29,15 +33,19 @@ export function WorkspaceShell({ user, children }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [history, setHistory] = useState<ChatSummary[]>([]);
+  const [historyMenuOpen, setHistoryMenuOpen] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function close(event: MouseEvent) {
       if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+      if (!(event.target instanceof Element) || !event.target.closest("[data-history-menu]")) setHistoryMenuOpen(null);
     }
     function escape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setMenuOpen(false);
+        setHistoryMenuOpen(null);
         setMobileOpen(false);
       }
     }
@@ -46,6 +54,27 @@ export function WorkspaceShell({ user, children }: Props) {
     return () => {
       document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", escape);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    async function loadHistory() {
+      try {
+        const response = await fetch("/api/chats", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json() as { chats: ChatSummary[] };
+        if (active) setHistory(data.chats);
+      } catch {
+        // Keep navigation usable when history is temporarily unavailable.
+      }
+    }
+    const refresh = () => { void loadHistory(); };
+    void loadHistory();
+    window.addEventListener("plainchat:history-changed", refresh);
+    return () => {
+      active = false;
+      window.removeEventListener("plainchat:history-changed", refresh);
     };
   }, []);
 
@@ -60,6 +89,65 @@ export function WorkspaceShell({ user, children }: Props) {
     router.push("/chat");
     setMobileOpen(false);
     window.dispatchEvent(new Event("plainchat:new"));
+  }
+
+  async function renameChat(chat: ChatSummary) {
+    setHistoryMenuOpen(null);
+    const title = window.prompt("Rename chat", chat.title)?.trim();
+    if (!title || title === chat.title) return;
+    const response = await fetch(`/api/chats/${encodeURIComponent(chat.id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
+    if (response.ok) {
+      const updated = await response.json() as ChatSummary;
+      setHistory((current) => current.map((item) => item.id === chat.id ? updated : item));
+    }
+  }
+
+  async function deleteChat(chat: ChatSummary) {
+    setHistoryMenuOpen(null);
+    if (!window.confirm(`Delete “${chat.title}”? This cannot be undone.`)) return;
+    const response = await fetch(`/api/chats/${encodeURIComponent(chat.id)}`, { method: "DELETE" });
+    if (!response.ok) return;
+    setHistory((current) => current.filter((item) => item.id !== chat.id));
+    if (pathname === `/chat/${chat.id}`) router.push("/chat");
+  }
+
+  async function deleteHistoryGroup(ids: string[]) {
+    setHistoryMenuOpen(null);
+    if (!ids.length || !window.confirm("Delete all chats from Previous 30 days? This cannot be undone.")) return;
+    const response = await fetch("/api/chats/bulk-delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    if (!response.ok) return;
+    setHistory((current) => current.filter((chat) => !ids.includes(chat.id)));
+    if (ids.some((id) => pathname === `/chat/${id}`)) router.push("/chat");
+  }
+
+  const groupedHistory = groupChatHistory(history);
+  const historyLabels: Record<HistoryGroup, string> = {
+    current: "Current",
+    yesterday: "Yesterday",
+    previous30: "Previous 30 days",
+  };
+
+  function historyMenuButton(key: string) {
+    return {
+      onClick: (event: React.MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setHistoryMenuOpen((current) => current === key ? null : key);
+      },
+      onContextMenu: (event: React.MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setHistoryMenuOpen(key);
+      },
+    };
   }
 
   const sidebarContent = (
@@ -90,18 +178,78 @@ export function WorkspaceShell({ user, children }: Props) {
         </button>
       </div>
 
-      <nav className="flex-1 px-3 py-5" aria-label="Workspace">
-        <p className="mb-2 px-3 text-xs font-medium text-muted-foreground">Chats</p>
-        <Link
-          href="/chat"
-          onClick={() => setMobileOpen(false)}
-          className={`flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm ${
-            pathname === "/chat" ? "bg-brand-secondary/30 font-medium text-brand" : "hover:bg-muted"
-          }`}
-        >
-          <MessageSquareText size={16} />
-          <span className="truncate">Current conversation</span>
-        </Link>
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5" aria-label="Chat history">
+        {(Object.keys(groupedHistory) as HistoryGroup[]).map((group) => {
+          const chats = groupedHistory[group];
+          if (!chats.length) return null;
+          const groupMenuKey = `group:${group}`;
+          return (
+            <section className="mb-5" key={group}>
+              <div className="mb-1 flex min-h-8 items-center justify-between px-3">
+                <p className="text-xs font-medium text-muted-foreground">{historyLabels[group]}</p>
+                {group === "previous30" && (
+                  <div className="relative" data-history-menu>
+                    <button
+                      type="button"
+                      aria-label="Previous 30 days actions"
+                      aria-haspopup="menu"
+                      aria-expanded={historyMenuOpen === groupMenuKey}
+                      className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                      {...historyMenuButton(groupMenuKey)}
+                    >
+                      <Ellipsis size={16} />
+                    </button>
+                    {historyMenuOpen === groupMenuKey && (
+                      <div role="menu" className="absolute right-0 top-8 z-40 w-44 rounded-xl border border-border bg-panel p-1.5 shadow-xl">
+                        <button type="button" role="menuitem" onClick={() => void deleteHistoryGroup(chats.map((chat) => chat.id))} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-brand-danger hover:bg-muted">
+                          <Trash2 size={15} /> Delete all
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-0.5">
+                {chats.map((chat) => {
+                  const itemMenuKey = `chat:${chat.id}`;
+                  const active = pathname === `/chat/${chat.id}`;
+                  return (
+                    <div className="group/chat relative" data-history-menu key={chat.id}>
+                      <Link
+                        href={`/chat/${chat.id}`}
+                        onClick={() => { setMobileOpen(false); setHistoryMenuOpen(null); }}
+                        className={`flex min-h-9 items-center gap-2 rounded-lg py-2 pl-3 pr-9 text-sm ${active ? "bg-brand-secondary/30 font-medium text-brand" : "hover:bg-muted"}`}
+                      >
+                        <MessageSquareText size={15} className="shrink-0" />
+                        <span className="truncate">{chat.title}</span>
+                      </Link>
+                      <button
+                        type="button"
+                        aria-label={`Actions for ${chat.title}`}
+                        aria-haspopup="menu"
+                        aria-expanded={historyMenuOpen === itemMenuKey}
+                        className={`absolute right-1 top-1 grid size-7 place-items-center rounded-md bg-sidebar text-muted-foreground hover:bg-muted hover:text-foreground ${historyMenuOpen === itemMenuKey ? "opacity-100" : "opacity-100 sm:opacity-0 sm:group-hover/chat:opacity-100 sm:focus:opacity-100"}`}
+                        {...historyMenuButton(itemMenuKey)}
+                      >
+                        <Ellipsis size={16} />
+                      </button>
+                      {historyMenuOpen === itemMenuKey && (
+                        <div role="menu" className="absolute right-1 top-9 z-40 w-36 rounded-xl border border-border bg-panel p-1.5 shadow-xl">
+                          <button type="button" role="menuitem" onClick={() => void renameChat(chat)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">
+                            <Pencil size={14} /> Rename
+                          </button>
+                          <button type="button" role="menuitem" onClick={() => void deleteChat(chat)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-brand-danger hover:bg-muted">
+                            <Trash2 size={14} /> Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
       </nav>
 
       <div className="relative p-2" ref={menuRef}>
@@ -183,7 +331,7 @@ export function WorkspaceShell({ user, children }: Props) {
                 <PanelLeftOpen size={19} />
               </button>
             )}
-            <p className="text-sm font-medium">{pathname === "/settings" ? "Settings" : "AIAppStarter"}</p>
+            {pathname === "/settings" && <p className="text-sm font-medium">Settings</p>}
           </div>
           <ThemeToggle />
         </header>

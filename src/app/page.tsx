@@ -20,7 +20,7 @@ export default async function HomePage() {
         <div>
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground"><span className="size-1.5 rounded-full bg-emerald-500" /> Private by default. Provider-flexible.</div>
           <h1 className="max-w-2xl text-4xl font-semibold leading-[1.08] tracking-[-0.04em] sm:text-6xl">A focused place to think with AI.</h1>
-          <p className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground">Use OpenAI, connect a local Ollama model, or begin safely in echo mode. One calm interface, built for useful conversations.</p>
+          <p className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground">Connect an OpenAI-compatible endpoint or a local Ollama model. One calm interface, built for useful conversations.</p>
           <div className="mt-8 flex flex-wrap gap-3"><Link href={session ? "/chat" : "/login"} className="button-primary">{session ? "Continue chatting" : "Get started"} <ArrowRight size={17} /></Link><a href="#capabilities" className="button-secondary">Learn more</a></div>
           <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
             {["Server-side model access", "Local model ready", "Light and dark themes"].map((item) => <li className="flex items-center gap-2" key={item}><CheckCircle2 size={15} className="text-emerald-500" />{item}</li>)}

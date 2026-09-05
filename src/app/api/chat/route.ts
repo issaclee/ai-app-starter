@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { handleChatRequest } from "@/lib/chat-handler";
-import { generateReply } from "@/lib/llm";
+import { generateReplyStream } from "@/lib/llm";
 
 export async function POST(request: Request) {
-  return handleChatRequest(request, { getSession: auth, reply: generateReply });
+  return handleChatRequest(request, { getSession: auth, reply: generateReplyStream });
 }
