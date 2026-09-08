@@ -2,21 +2,15 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
-import { z } from "zod";
+import { authorizeCredentials } from "@/lib/credential-auth";
+import { linkOAuthIdentity } from "@/lib/oauth-identity";
 import { prisma } from "@/lib/db";
-import { verifyPassword } from "@/lib/password";
-import { checkRateLimit } from "@/lib/rate-limit";
 
 const microsoftTenantId = process.env.MICROSOFT_ENTRA_ID_TENANT_ID;
 
-const credentialsSchema = z.object({
-  email: z.string().email().max(254).transform((value) => value.toLowerCase()),
-  password: z.string().min(1).max(256),
-});
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/login", error: "/login" },
   providers: [
     Google({
@@ -37,24 +31,57 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(rawCredentials) {
-        const parsed = credentialsSchema.safeParse(rawCredentials);
-        if (!parsed.success) return null;
-        const rate = checkRateLimit(`login:${parsed.data.email}`, 8, 60_000);
-        if (!rate.allowed) return null;
-        const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-        if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) return null;
-        return { id: user.id, email: user.email, name: user.name };
-      },
+      authorize: authorizeCredentials,
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (!account || account.provider === "credentials") return true;
+      const linked = await linkOAuthIdentity({
+        provider: account.provider,
+        providerAccountId: account.providerAccountId,
+        email: user.email,
+        name: user.name,
+      });
+      if (!linked.allowed || !linked.userId) return false;
+      user.id = linked.userId;
+      return true;
+    },
+    jwt({ token, user, account }) {
+      if (user && account) {
+        token.localUserId = user.id;
+        token.sessionId = crypto.randomUUID();
+        token.authProvider = account.provider;
+      } else if (token.localUserId && !token.sessionId) {
+        token.sessionId = typeof token.jti === "string" ? token.jti : crypto.randomUUID();
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user && typeof token.localUserId === "string") {
+        session.user.localUserId = token.localUserId;
+      }
+      if (typeof token.sessionId === "string") session.sessionId = token.sessionId;
+      if (typeof token.authProvider === "string") session.authProvider = token.authProvider;
+      return session;
+    },
     redirect({ url, baseUrl }) {
       if (url.startsWith("/") && !url.startsWith("//")) return `${baseUrl}${url}`;
       try {
         if (new URL(url).origin === baseUrl) return url;
       } catch {}
       return `${baseUrl}/chat`;
+    },
+  },
+  events: {
+    async signOut(message) {
+      const token = "token" in message ? message.token : null;
+      if (typeof token?.sessionId === "string") {
+        await prisma.connectionSession.updateMany({
+          where: { id: token.sessionId, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+      }
     },
   },
 });

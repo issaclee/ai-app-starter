@@ -1,28 +1,37 @@
-# AIAppStarter
+# Agentic ERP Enterprise App Starter
 
-AIAppStarter is a small, secure AI chat starter built with Next.js, React, Auth.js, Prisma, and Tailwind CSS. It supports OpenAI-compatible providers and local Ollama servers.
+A secure, opinionated foundation for building authenticated enterprise AI applications with Next.js 16, React 19, strict TypeScript, Auth.js, Prisma, Zod, Tailwind CSS, and Vitest.
 
-## Prerequisites
+The included Agentic ERP experience is the reference implementation. Clone the repository, update one public product configuration, then extend the existing service and route patterns for your domain.
 
-- Node.js 20 or newer
-- npm
-- Optional: an OpenAI API key
-- Optional: [Ollama](https://ollama.com/) and a downloaded local model
+## What is included
 
-## Local setup
+- Public, responsive product landing page with light and dark themes.
+- Credentials, Google, and Microsoft Entra ID authentication.
+- Server-validated connection sessions with revocation and activity tracking.
+- Self-service profile and theme management.
+- Administrator-only user CRUD and active-session management.
+- Persistent, user-owned chat history.
+- OpenAI-compatible and Ollama model adapters with server-only credentials.
+- Markdown rendering and Markdown, PDF, and Word response export.
+- Zod request validation, bcrypt password hashing, rate-limit boundaries, tests, and security headers.
+- Step-by-step Codex implementation briefs in `codex-prompts/`.
+
+## Quick start
+
+Requirements:
+
+- Node.js 20 or newer.
+- npm.
+- An optional OpenAI-compatible API or local Ollama server.
 
 ```bash
 npm install
 cp .env.example .env
-```
-
-Generate a strong Auth.js secret and put it in `AUTH_SECRET`:
-
-```bash
 openssl rand -base64 32
 ```
 
-Then initialize the database and start the app:
+Put the generated value in `AUTH_SECRET`, then initialize and run the app:
 
 ```bash
 npm run db:generate
@@ -33,91 +42,68 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Development login
+The development seed creates `admin@mptwork.local` with password `admin` only when that account is absent. Change it immediately before sharing the application. Re-running the seed does not overwrite a changed password.
 
-- Username: `admin@mptwork.local`
-- Password: `admin`
+## Rebrand a cloned application
 
-This account and password are **development-only**. Change the password before sharing or deploying the app. The seed is idempotent: it creates the administrator only when absent and never overwrites a later password change.
+Start with [`src/config/app.ts`](src/config/app.ts). It centralizes the public product name, company, wordmark, route destinations, landing copy, and empty-chat starter prompts. Then replace the logo files and tune the theme tokens in `src/app/globals.css`.
 
-## Model providers
+Do not put credentials, internal endpoints, authorization rules, or infrastructure configuration in the public app configuration. Those belong in environment variables and server-only modules.
 
-Provider selection, model discovery, API keys, and upstream requests stay on the server. Missing or invalid configuration produces a safe, user-facing error in the chat interface.
+Follow the full [customization guide](docs/CUSTOMIZATION.md) before adding domain features.
 
-### OpenAI-compatible providers
+## Configuration
 
-```dotenv
-LLM_PROVIDER=openai
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_API_KEY=your_server_side_key
-OPENAI_MODEL=your_model_name
-```
+Copy `.env.example` to `.env`. The application reads:
 
-The endpoint must implement the OpenAI-compatible `/chat/completions` and `/models` APIs. `OPENAI_API_KEY` is optional for providers that do not require authentication. When `OPENAI_MODEL` is blank, the server selects the first model returned by `/models`. Never prefix server configuration with `NEXT_PUBLIC_`.
+- `AUTH_SECRET` and `DATABASE_URL`.
+- `LLM_PROVIDER` plus the selected OpenAI-compatible or Ollama settings.
+- Optional Google OAuth credentials.
+- Optional Microsoft Entra ID credentials.
 
-### Ollama
+Provider discovery, API keys, and upstream model calls stay on the server. Never use a `NEXT_PUBLIC_` prefix for secrets.
 
-Install Ollama, then download and serve a model:
-
-```bash
-ollama pull llama3.2
-ollama serve
-```
-
-Configure AIAppStarter:
-
-```dotenv
-LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_MODEL=llama3.2
-```
-
-When `OLLAMA_MODEL` is blank, the server selects the first locally available model returned by Ollama's `/api/tags` endpoint.
-
-Restart the development server after changing environment variables.
-
-## OAuth configuration
-
-Google and Microsoft Entra ID sign-in use the server environment variables shown in `.env.example`. Configure these callback URLs in the provider consoles:
-
-- Google: `/api/auth/callback/google`
-- Microsoft: `/api/auth/callback/microsoft`
+Detailed setup is in [Getting started](docs/GETTING_STARTED.md).
 
 ## Commands
 
 ```bash
-npm run dev          # development server
-npm run test         # unit tests
-npm run typecheck    # strict TypeScript check
-npm run lint         # ESLint
-npm run build        # production build
+npm run dev          # start local development
+npm run build        # create the production build
 npm run start        # run the production build
-npm run db:generate  # generate Prisma client
-npm run db:migrate   # apply the idempotent local schema bootstrap
-npm run db:seed      # create the bootstrap user if absent
+npm run typecheck    # run strict TypeScript checks
+npm run lint         # run ESLint
+npm run test         # run the Vitest suite once
+npm run test:watch   # run Vitest in watch mode
+npm run db:generate  # generate the Prisma client
+npm run db:migrate   # apply the idempotent schema bootstrap
+npm run db:seed      # seed the bootstrap administrator
 ```
 
-## Architecture
+Before handing off a substantial feature, run:
 
-- `src/auth.ts` — credential authentication, safe redirects, and login throttling
-- `src/app/api/chat/route.ts` — authenticated and validated chat boundary
-- `src/lib/llm.ts` — streaming OpenAI-compatible and Ollama provider adapters
-- `src/lib/chat-schema.ts` — input limits and Zod validation
-- `src/app/(workspace)` — authenticated chat and settings pages
-- `src/components` — chat, navigation, login, and theme UI
-- `prisma/schema.prisma` and `prisma/seed.mjs` — local user database
+```bash
+npm run db:generate
+npm run db:migrate
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
 
-The canonical initial migration SQL is checked in under `prisma/migrations`.
-The `db:migrate` script applies the equivalent idempotent schema through the
-Prisma client, which also makes repeated local bootstrap runs safe.
+## Documentation
 
-Conversation messages currently live in browser memory and disappear on refresh or when **New chat** is selected. Conversation persistence is intentionally outside this starter's scope.
+- [Getting started](docs/GETTING_STARTED.md) — clone-to-running setup and environment configuration.
+- [Architecture](docs/ARCHITECTURE.md) — request flows, boundaries, directories, and extension patterns.
+- [Customization](docs/CUSTOMIZATION.md) — rebranding and adding enterprise features safely.
+- [Production readiness](docs/PRODUCTION.md) — mandatory hardening decisions before deployment.
+- [Agent instructions](AGENTS.md) — repository conventions for AI coding agents and contributors.
+- [Feature prompts](codex-prompts/README.md) — ordered, repeatable implementation briefs for major starter features.
 
-## Security and production notes
+## Important production limits
 
-- Passwords are hashed with bcrypt and model credentials remain server-side.
-- Pages and the chat API independently verify the session.
-- Login and chat use a basic in-memory rate limiter. It resets on process restart and does not coordinate across instances; use Redis or another shared store in a distributed deployment.
-- SQLite is intended for local development. Consider managed PostgreSQL for multi-instance production use.
-- Use HTTPS, rotate the bootstrap password and `AUTH_SECRET`, configure trusted hosts, review Content Security Policy requirements, and add monitoring before deployment.
-- Do not commit `.env`, local databases, API keys, or OAuth credentials.
+SQLite and the in-memory rate limiter are development defaults. Before running multiple instances, move to a managed production database, use a shared rate-limit store, establish migrations and backups, configure trusted origins and OAuth callbacks, add monitoring, and rotate all bootstrap credentials. See [Production readiness](docs/PRODUCTION.md).
+
+## License
+
+No license is included by default. Choose and add the license appropriate for your organization before distributing a cloned project.

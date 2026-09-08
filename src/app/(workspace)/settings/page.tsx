@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
-import { auth } from "@/auth";
-import { currentProvider } from "@/lib/llm";
-import { ThemeSettings } from "@/components/theme-settings";
+import { redirect } from "next/navigation";
+import { SettingsWorkspace } from "@/components/settings-workspace";
+import { getActiveSession } from "@/lib/app-session";
+import { getSettingsBootstrap } from "@/lib/user-management";
 
 export const metadata: Metadata = { title: "Settings" };
+
 export default async function SettingsPage() {
-  const session = await auth();
-  const provider = currentProvider();
-  const configured = provider !== "unconfigured";
-  return <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8"><div className="border-b border-border pb-7"><p className="text-sm font-medium text-brand">Workspace</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">Settings</h1><p className="mt-2 text-sm text-muted-foreground">Manage your local preferences and review the active runtime.</p></div><div className="divide-y divide-border"><section className="grid gap-5 py-8 sm:grid-cols-[180px_1fr]"><div><h2 className="font-medium">Account</h2><p className="mt-1 text-sm text-muted-foreground">Signed-in identity</p></div><dl className="rounded-2xl border border-border bg-panel"><div className="grid gap-1 border-b border-border p-4 sm:grid-cols-[130px_1fr]"><dt className="text-sm text-muted-foreground">Display name</dt><dd className="text-sm font-medium">{session?.user?.name}</dd></div><div className="grid gap-1 p-4 sm:grid-cols-[130px_1fr]"><dt className="text-sm text-muted-foreground">Username</dt><dd className="break-all text-sm font-medium">{session?.user?.email}</dd></div></dl></section><section className="grid gap-5 py-8 sm:grid-cols-[180px_1fr]"><div><h2 className="font-medium">Appearance</h2><p className="mt-1 text-sm text-muted-foreground">Interface theme</p></div><ThemeSettings /></section><section className="grid gap-5 py-8 sm:grid-cols-[180px_1fr]"><div><h2 className="font-medium">Model provider</h2><p className="mt-1 text-sm text-muted-foreground">Server runtime</p></div><div className="rounded-2xl border border-border bg-panel p-4"><div className="flex items-center justify-between"><span className="text-sm font-medium capitalize">{provider}</span><span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-medium text-brand">{configured ? "Active" : "Needs configuration"}</span></div><p className="mt-3 text-sm leading-6 text-muted-foreground">Model names, endpoints, and secrets are managed with server environment variables and are never displayed here.</p></div></section></div></div>;
+  const session = await getActiveSession();
+  if (!session?.user) redirect("/login");
+  const { isAdmin, users } = await getSettingsBootstrap(session.user.localUserId);
+  if (!isAdmin) redirect("/chat");
+
+  return (
+    <SettingsWorkspace
+      currentUserId={session.user.localUserId}
+      initialUsers={users}
+    />
+  );
 }

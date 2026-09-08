@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { MarkdownContent } from "@/components/markdown-content";
 import { MessageActions } from "@/components/message-actions";
 import { ResponseEditor } from "@/components/response-editor";
+import { appConfig } from "@/config/app";
 import type { ChatMessage } from "@/lib/chat-schema";
 import type { ProviderOption } from "@/lib/llm";
 
@@ -313,10 +314,10 @@ export function ChatInterface({
             <div className="grid min-h-[55vh] place-items-center text-center">
               <div>
                 <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand text-white"><Bot size={22} /></span>
-                <h1 className="mt-5 text-2xl font-semibold tracking-tight">What can I help with?</h1>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">Start a conversation with the configured language model.</p>
+                <h1 className="mt-5 text-2xl font-semibold tracking-tight">{appConfig.chat.emptyStateHeading}</h1>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{appConfig.chat.emptyStateDescription}</p>
                 <div className="mt-7 flex flex-wrap justify-center gap-2">
-                  {["Outline a project plan", "Draft a concise update", "Explain a technical idea"].map((prompt) => (
+                  {appConfig.chat.starterPrompts.map((prompt) => (
                     <button key={prompt} onClick={() => { setDraft(prompt); textareaRef.current?.focus(); }} className="rounded-full border border-border px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
                       {prompt}
                     </button>

@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getActiveSession } from "@/lib/app-session";
 import { createChatTitle, saveChatSchema } from "@/lib/chat-history";
 import { prisma } from "@/lib/db";
 
@@ -7,7 +7,7 @@ function ownerEmail(session: { user?: { email?: string | null } } | null) {
 }
 
 export async function GET() {
-  const email = ownerEmail(await auth());
+  const email = ownerEmail(await getActiveSession());
   if (!email) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const chats = await prisma.chat.findMany({
@@ -22,7 +22,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const email = ownerEmail(await auth());
+  const email = ownerEmail(await getActiveSession());
   if (!email) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: unknown;

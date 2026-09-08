@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { auth } from "@/auth";
+import { getActiveSession } from "@/lib/app-session";
 import { exportResponse } from "@/lib/response-export";
 
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ const exportSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const session = await auth();
+  const session = await getActiveSession();
   if (!session?.user?.email) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: unknown;

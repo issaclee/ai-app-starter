@@ -1,11 +1,11 @@
-import { auth } from "@/auth";
+import { getActiveSession } from "@/lib/app-session";
 import { renameChatSchema, saveChatSchema } from "@/lib/chat-history";
 import { prisma } from "@/lib/db";
 
 type Context = { params: Promise<{ chatId: string }> };
 
 async function getOwner() {
-  return (await auth())?.user?.email?.trim().toLowerCase() || null;
+  return (await getActiveSession())?.user?.email?.trim().toLowerCase() || null;
 }
 
 async function ownedChat(chatId: string, ownerEmail: string) {

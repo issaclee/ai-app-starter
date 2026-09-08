@@ -1,9 +1,9 @@
-import { auth } from "@/auth";
+import { getActiveSession } from "@/lib/app-session";
 import { bulkDeleteChatsSchema } from "@/lib/chat-history";
 import { prisma } from "@/lib/db";
 
 export async function POST(request: Request) {
-  const email = (await auth())?.user?.email?.trim().toLowerCase();
+  const email = (await getActiveSession())?.user?.email?.trim().toLowerCase();
   if (!email) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: unknown;

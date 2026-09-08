@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { appConfig } from "@/config/app";
 
 type BrandLogoProps = {
   size?: number;
@@ -10,7 +11,7 @@ export function BrandLogo({ size = 32, showWordmark = true, className = "" }: Br
   return (
     <span className={`inline-flex min-w-0 items-center gap-2 ${className}`}>
       <Image
-        src="/aiappstarter-mark.svg"
+        src={appConfig.logo.src}
         alt=""
         width={size}
         height={size}
@@ -19,10 +20,10 @@ export function BrandLogo({ size = 32, showWordmark = true, className = "" }: Br
       />
       {showWordmark && (
         <span className="truncate font-semibold tracking-[-0.02em]">
-          <span>AIApp</span><span className="text-brand">Starter</span>
+          <span>{appConfig.logo.primaryText}</span><span className="text-brand"> {appConfig.logo.accentText}</span>
         </span>
       )}
-      <span className="sr-only">AIAppStarter</span>
+      <span className="sr-only">{appConfig.name}</span>
     </span>
   );
 }

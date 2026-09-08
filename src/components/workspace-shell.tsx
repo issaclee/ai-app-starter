@@ -2,49 +2,46 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
 import {
-  ChevronDown,
   Ellipsis,
-  LogOut,
   Menu,
   MessageSquarePlus,
   MessageSquareText,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
-  Settings,
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
+import { ProfileView } from "@/components/profile-view";
+import { SidebarAccountMenu } from "@/components/sidebar-account-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { groupChatHistory, type ChatSummary, type HistoryGroup } from "@/lib/chat-history";
 
 type Props = {
-  user: { name: string; email: string };
+  user: { name: string; email: string; role: "ADMIN" | "USER" };
+  provider: { name: string; configured: boolean };
   children: React.ReactNode;
 };
 
-export function WorkspaceShell({ user, children }: Props) {
+export function WorkspaceShell({ user, provider, children }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [history, setHistory] = useState<ChatSummary[]>([]);
   const [historyMenuOpen, setHistoryMenuOpen] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileUser, setProfileUser] = useState(user);
 
   useEffect(() => {
     function close(event: MouseEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
       if (!(event.target instanceof Element) || !event.target.closest("[data-history-menu]")) setHistoryMenuOpen(null);
     }
     function escape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setMenuOpen(false);
         setHistoryMenuOpen(null);
         setMobileOpen(false);
       }
@@ -78,16 +75,10 @@ export function WorkspaceShell({ user, children }: Props) {
     };
   }, []);
 
-  const initials = user.name
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   function startNewChat() {
     router.push("/chat");
     setMobileOpen(false);
+    setProfileOpen(false);
     window.dispatchEvent(new Event("plainchat:new"));
   }
 
@@ -252,42 +243,15 @@ export function WorkspaceShell({ user, children }: Props) {
         })}
       </nav>
 
-      <div className="relative p-2" ref={menuRef}>
-        {menuOpen && (
-          <div className="absolute bottom-[68px] left-2 right-2 z-30 rounded-2xl border border-border bg-panel p-1.5 shadow-xl">
-            <Link
-              href="/settings"
-              onClick={() => { setMenuOpen(false); setMobileOpen(false); }}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-muted"
-            >
-              <Settings size={16} /> Settings
-            </Link>
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-muted"
-            >
-              <LogOut size={16} /> Log out
-            </button>
-          </div>
-        )}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-expanded={menuOpen}
-          aria-haspopup="menu"
-          className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-muted"
-        >
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-emphasis text-xs font-semibold text-white">
-            {initials}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium">{user.name}</span>
-            <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
-          </span>
-          <ChevronDown size={15} className="text-muted-foreground" />
-        </button>
-      </div>
+      <SidebarAccountMenu
+        user={profileUser}
+        onOpenProfile={() => { setProfileOpen(true); setMobileOpen(false); }}
+        onNavigate={() => { setProfileOpen(false); setMobileOpen(false); }}
+      />
     </>
   );
+
+  if (pathname === "/settings") return children;
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
@@ -312,7 +276,7 @@ export function WorkspaceShell({ user, children }: Props) {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center justify-between px-3 sm:px-4">
           <div className="flex items-center gap-2">
             <button
@@ -331,11 +295,11 @@ export function WorkspaceShell({ user, children }: Props) {
                 <PanelLeftOpen size={19} />
               </button>
             )}
-            {pathname === "/settings" && <p className="text-sm font-medium">Settings</p>}
           </div>
           <ThemeToggle />
         </header>
         <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+        {profileOpen && <ProfileView name={profileUser.name} email={profileUser.email} provider={provider.name} providerConfigured={provider.configured} onClose={() => setProfileOpen(false)} onSaved={(saved) => { setProfileUser((current) => ({ ...current, ...saved })); router.refresh(); }} />}
       </div>
     </div>
   );

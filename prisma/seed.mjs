@@ -12,11 +12,17 @@ try {
         email,
         name: "Administrator",
         passwordHash: await hash("admin", 12),
+        role: "ADMIN",
+        status: "ACTIVE",
       },
     });
     console.log("Created the development bootstrap administrator.");
   } else {
-    console.log("Bootstrap administrator already exists; password unchanged.");
+    await prisma.user.update({
+      where: { email },
+      data: { role: "ADMIN", status: "ACTIVE" },
+    });
+    console.log("Bootstrap administrator already exists; access restored and password unchanged.");
   }
 } finally {
   await prisma.$disconnect();
