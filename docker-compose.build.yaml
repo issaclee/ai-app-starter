@@ -1,0 +1,11 @@
+services:
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner

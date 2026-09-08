@@ -12,6 +12,8 @@ cd <project-name>
 npm install
 ```
 
+Use Node.js 22 or newer, matching the production container runtime and the supported range of the locked dependencies.
+
 Use the checked-in npm lockfile. Do not replace the package manager or bulk-upgrade dependencies during initial setup.
 
 ## 2. Configure the environment
@@ -26,8 +28,11 @@ Set the generated secret as `AUTH_SECRET`. Keep `.env` local and never commit it
 The default database URL is SQLite:
 
 ```dotenv
+DATABASE_PROVIDER=sqlite
 DATABASE_URL="file:./dev.db"
 ```
+
+Prisma clients are provider-specific, so this project generates both clients with `npm run db:generate` and selects one through `DATABASE_PROVIDER`. Change both the provider and URL together when switching databases; changing only the URL is not supported.
 
 Choose one model provider.
 
@@ -102,3 +107,27 @@ npm run build
 ```
 
 If the baseline fails, resolve or document it before adding product work. Do not mix dependency upgrades, broad refactors, and the first domain feature in one change.
+
+## 8. Run the application in Docker with SQLite
+
+SQLite is the default container workflow. Copy the container environment template, then build and start the stack:
+
+```bash
+cp .env.sqlite.example .env.sqlite
+docker compose --env-file .env.sqlite up -d --build
+```
+
+The equivalent explicit command is:
+
+```bash
+docker compose --env-file .env.sqlite \
+  -f docker-compose-sqlite.yaml up -d --build
+```
+
+The one-shot `initialize` service applies the SQLite schema and seed before the application starts. Application data persists in the `sqlite-data` named volume. Inspect the result with `docker compose ps` and `docker compose logs app`.
+
+For local OAuth, use the published host port rather than a container hostname. With `APP_PORT=3000`, set `AUTH_URL=http://localhost:3000`; the provider callback paths are `/api/auth/callback/google` and `/api/auth/callback/microsoft`.
+
+## 9. Deploy with PostgreSQL
+
+The production path uses `docker-compose-psql.yaml` and the same standalone image. External PostgreSQL is the default: copy `.env.production.example`, set its external `DATABASE_URL`, public `AUTH_URL`, secrets, OAuth credentials, and model settings, then follow [Production readiness](PRODUCTION.md). Leave `COMPOSE_PROFILES` empty to avoid starting a database container. Set it to `bundled-database` only when deliberately using the optional PostgreSQL service.

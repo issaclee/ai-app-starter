@@ -10,6 +10,7 @@ These files are implementation briefs, not runtime configuration. They record ho
 4. `feature-chat-1.md` — implement the authenticated chat workspace.
 5. `feature-settings-1.md` — add profile, user management, and connection sessions.
 6. `feature-landing-page1.md` — apply the current Agentic ERP brand, landing page, and workspace entry copy.
+7. `feature-deployment-1.md` — package one production image that runs with default SQLite or production PostgreSQL persistence.
 
 The prompts are cumulative. Earlier files intentionally contain historical `AIAppStarter` references that are replaced by the final landing-page brief. Do not rerun an early prompt against a finished clone without reconciling it with the current `AGENTS.md`, `src/config/app.ts`, and later feature briefs.
 

@@ -1,8 +1,8 @@
 import { hash } from "bcryptjs";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getActiveSession } from "@/lib/app-session";
 import { OAUTH_ONLY_PASSWORD_HASH } from "@/lib/oauth-identity";
+import { isPrismaErrorCode } from "@/lib/prisma-error";
 import { createUserSchema, updateUserSchema } from "@/lib/user-schema";
 
 export type ManagedUser = {
@@ -93,7 +93,7 @@ export async function createManagedUser(input: unknown): Promise<ManagedUser | U
     });
     return toManagedUser(user);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (isPrismaErrorCode(error, "P2002")) {
       return { status: 409, error: "A user with this email already exists.", fieldErrors: { email: ["Email is already in use."] } };
     }
     throw error;
@@ -136,7 +136,7 @@ export async function updateManagedUser(userId: string, input: unknown, actorUse
       return toManagedUser(user);
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (isPrismaErrorCode(error, "P2002")) {
       return { status: 409, error: "A user with this email already exists.", fieldErrors: { email: ["Email is already in use."] } };
     }
     throw error;

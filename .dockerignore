@@ -1,0 +1,15 @@
+.git
+.next
+node_modules
+coverage
+out
+build
+prisma/*.db
+prisma/*.db-journal
+prisma/generated
+.env
+.env.*
+!.env.example
+!.env.production.example
+npm-debug.log*
+.DS_Store

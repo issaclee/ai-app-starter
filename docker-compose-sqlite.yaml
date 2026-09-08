@@ -1,0 +1,50 @@
+name: agentic-erp-sqlite
+
+x-sqlite-service: &sqlite-service
+  image: ${APP_IMAGE:-agentic-erp:latest}
+  env_file:
+    - path: ${APP_ENV_FILE:-.env.sqlite}
+      required: false
+  environment:
+    DATABASE_PROVIDER: sqlite
+    DATABASE_URL: file:/app/data/agentic-erp.db
+    AUTH_SECRET: ${AUTH_SECRET:-local-sqlite-docker-secret-change-before-sharing}
+  volumes:
+    - sqlite-data:/app/data
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  initialize:
+    <<: *sqlite-service
+    command: ["node", "prisma/initialize-sqlite.mjs"]
+    restart: "no"
+
+  app:
+    <<: *sqlite-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    restart: unless-stopped
+    init: true
+    environment:
+      DATABASE_PROVIDER: sqlite
+      DATABASE_URL: file:/app/data/agentic-erp.db
+      AUTH_SECRET: ${AUTH_SECRET:-local-sqlite-docker-secret-change-before-sharing}
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      initialize:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  sqlite-data:

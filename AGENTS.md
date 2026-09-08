@@ -17,7 +17,7 @@ These instructions apply to the entire repository. Use them as the default conve
 - Next.js 16 App Router, React 19, and strict TypeScript.
 - Tailwind CSS 4 with shared theme tokens and component classes in `src/app/globals.css`.
 - Auth.js with JWT sessions; credentials, Google, and Microsoft providers.
-- Prisma 5 with SQLite, Zod 4 validation, and `bcryptjs` password hashing.
+- Prisma 5 with SQLite for local development and PostgreSQL for production, Zod 4 validation, and `bcryptjs` password hashing.
 - Vitest for unit and integration tests and ESLint for static checks.
 - Use the existing npm scripts: `dev`, `build`, `lint`, `typecheck`, `test`, `db:generate`, `db:migrate`, and `db:seed`.
 

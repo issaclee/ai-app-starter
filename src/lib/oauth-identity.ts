@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { isPrismaErrorCode } from "@/lib/prisma-error";
 
 export const OAUTH_ONLY_PASSWORD_HASH = "!oauth-only";
 
@@ -65,7 +65,7 @@ export async function linkOAuthIdentity(input: OAuthIdentityInput): Promise<OAut
       return { allowed: true, userId: user.id };
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (isPrismaErrorCode(error, "P2002")) {
       const racedIdentity = await prisma.externalIdentity.findUnique({
         where: { provider_providerAccountId: identityKey },
         include: { user: { select: { id: true, status: true } } },

@@ -1,6 +1,6 @@
-import { Prisma } from "@prisma/client";
 import { getActiveSession } from "@/lib/app-session";
 import { prisma } from "@/lib/db";
+import { isPrismaErrorCode } from "@/lib/prisma-error";
 import { updateProfileSchema } from "@/lib/user-schema";
 
 export type UserProfile = {
@@ -46,7 +46,7 @@ export async function updateCurrentProfile(input: unknown): Promise<UserProfile 
       return updated;
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (isPrismaErrorCode(error, "P2002")) {
       return {
         status: 409,
         error: "A user with this email already exists.",

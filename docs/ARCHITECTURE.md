@@ -54,7 +54,7 @@ Auth.js provider
 - `src/lib/` — validation, server services, provider adapters, persistence, and utilities.
 - `src/auth.ts` — Auth.js providers, callbacks, JWT shaping, and logout revocation.
 - `src/types/` — framework and library type augmentation.
-- `prisma/` — schema, migrations, compatibility runner, and seed.
+- `prisma/` — SQLite and PostgreSQL schemas, provider-aware migration tools, seeds, and the optional data importer.
 - `tests/` — Vitest unit and integration coverage.
 - `codex-prompts/` — repeatable feature implementation briefs.
 - `docs/` — setup, architecture, customization, and production guidance.
@@ -76,7 +76,11 @@ The development schema contains:
 - `ConnectionSession` for revocable authenticated connections.
 - `Chat` and `ChatMessage` for ordered, user-owned conversation history.
 
-SQLite keeps local setup small. Production database migration is an explicit deployment decision; see [Production readiness](PRODUCTION.md).
+SQLite keeps local setup small. PostgreSQL uses a parallel, structurally equivalent Prisma schema and its own append-only migration history. `npm run db:generate` creates both clients, and `DATABASE_PROVIDER` selects the client and migration runner at runtime. The provider and URL must always identify the same database kind.
+
+PostgreSQL migrations are applied by a one-shot process before the application starts. The runner serializes deploys with a database advisory lock, records names and SHA-256 checksums in `AppMigration`, and applies each file transactionally. Existing SQLite data can be copied only into empty PostgreSQL application tables so the importer never attempts an ambiguous merge.
+
+The Dockerfile packages both generated clients and their native engines into one standalone image. The default `docker-compose.yaml` and explicit `docker-compose-sqlite.yaml` select SQLite and persist it in a named volume. Production uses `docker-compose-psql.yaml` to select PostgreSQL and run its migration service. The same image digest can therefore be promoted once and configured for either persistence provider without rebuilding.
 
 ## Extending the application
 

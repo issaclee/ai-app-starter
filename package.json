@@ -10,9 +10,15 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:generate": "prisma generate",
-    "db:migrate": "node prisma/migrate.mjs",
-    "db:seed": "prisma db seed"
+    "db:generate": "node prisma/database-command.mjs generate",
+    "db:generate:sqlite": "node prisma/database-command.mjs generate",
+    "db:generate:postgresql": "node prisma/database-command.mjs generate",
+    "db:migrate": "node prisma/database-command.mjs migrate",
+    "db:migrate:sqlite": "node prisma/migrate-sqlite.mjs",
+    "db:migrate:postgresql": "node prisma/migrate-postgresql.mjs",
+    "db:seed": "prisma db seed --schema prisma/schema.prisma",
+    "db:bootstrap-admin": "node prisma/bootstrap-admin.mjs",
+    "db:import:sqlite": "node prisma/prepare-sqlite-import.mjs"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"

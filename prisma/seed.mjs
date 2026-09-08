@@ -1,5 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "./generated/sqlite-client/index.js";
 import { hash } from "bcryptjs";
+
+if ((process.env.DATABASE_PROVIDER || "sqlite").toLowerCase() !== "sqlite") {
+  throw new Error("The development seed is SQLite-only. Use npm run db:bootstrap-admin for PostgreSQL.");
+}
 
 const prisma = new PrismaClient();
 const email = "admin@mptwork.local";
